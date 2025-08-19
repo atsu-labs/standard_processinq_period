@@ -5,6 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>標準処理期間計算</title>
     <style>
+        html {
+            box-sizing: border-box;
+        }
+        *, *:before, *:after {
+            box-sizing: inherit;
+        }
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
             line-height: 1.6;
@@ -88,55 +94,94 @@
 
         /* Calendar Styles */
         .calendar-wrapper {
-             margin-bottom: 20px;
+            margin-bottom: 20px;
+            background: #fff;
+            border-radius: 12px; /* Softer corners */
+            border: 1px solid #e2e8f0;
+            padding: 12px;
         }
         .calendar {
             width: 100%;
-            border-collapse: collapse;
+            border-collapse: separate; /* Allows for rounded corners on cells */
+            border-spacing: 0;
         }
         .calendar-header {
             text-align: center;
-            font-size: 1.2em;
-            font-weight: bold;
-            padding-bottom: 10px;
+            font-size: 1.1em; /* Slightly smaller */
+            font-weight: 600; /* Bolder */
+            padding-bottom: 15px; /* More spacing */
         }
         .calendar th, .calendar td {
             text-align: center;
-            padding: 8px;
-            border: 1px solid #ddd;
+            padding: 4px; /* Reduced padding */
+            border: none; /* Remove default borders */
             vertical-align: top;
-            height: 4.5em;
+            height: 4.5em; /* Reduced height */
         }
         .calendar th {
-            background-color: #f2f2f2;
+            color: #64748b; /* Muted text for header */
+            font-weight: 600;
         }
+        .calendar td {
+            border-top: 1px solid #f1f5f9; /* Horizontal lines */
+        }
+        .calendar tr td:first-child {
+            border-left: 1px solid #f1f5f9; /* Vertical lines */
+        }
+        .calendar tr td {
+            border-right: 1px solid #f1f5f9;
+        }
+        .calendar tr:last-child td {
+            border-bottom: 1px solid #f1f5f9;
+        }
+        .calendar tr:last-child td:first-child { border-bottom-left-radius: 8px; }
+        .calendar tr:last-child td:last-child { border-bottom-right-radius: 8px; }
+
         .date-number {
-            font-size: 0.9em;
+            font-size: 1em; /* Larger date numbers */
         }
         .day-count {
-            display: block;
+            display: inline-block; /* Make it a badge */
             margin-top: 4px;
-            font-size: 0.8em;
+            font-size: 0.75em; /* Smaller badge text */
             font-weight: bold;
-            color: #28a745;
+            color: #166534; /* Darker green */
+            background-color: #dcfce7; /* Light green */
+            padding: 2px 4px; /* Reduced horizontal padding */
+            border-radius: 4px; /* Less rounded corners */
+            /* white-space: nowrap; was removed to prevent overflow */
         }
         .day-marker {
-            font-size: 0.75em;
+            font-size: 0.8em; /* Larger marker */
             font-weight: bold;
             color: #333;
         }
         .holiday-name {
-            font-size: 0.7em;
+            font-size: 0.75em; /* Larger holiday name */
             line-height: 1.2;
             color: #555;
             margin-top: 2px;
+            white-space: normal; /* Ensure holiday names can wrap */
+            word-break: break-word; /* Break long names */
         }
-        .day-sat { color: #007bff; }
-        .day-sun { color: #dc3545; }
-        .day-holiday { background-color: #ffeeba; }
-        .day-ny-holiday { background-color: #cce5ff; }
-        .day-start { background-color: #a2d2a2; font-weight: bold; }
-        .day-end { background-color: #ffc107; font-weight: bold; }
+        .day-sat .date-number { color: #0284c7; } /* Blue for sat */
+        .day-sun .date-number { color: #be123c; } /* Red for sun */
+        
+        .day-holiday, .day-ny-holiday { background-color: #fefce8; } /* Light yellow for all holidays */
+        .day-holiday .holiday-name { color: #a16207; }
+
+        .day-start { 
+            background-color: #f0fdf4 !important; /* Very light green */
+            font-weight: bold; 
+        }
+        .day-end { 
+            background-color: #fffbeb !important; /* Very light yellow */
+            font-weight: bold; 
+        }
+        .day-end .day-count { /* Special style for end date badge */
+            background-color: #facc15; /* Yellow */
+            color: #422006;
+        }
 
         /* Holiday Checkbox Styles */
         .holiday-checkbox-grid {
@@ -208,7 +253,7 @@
                 gap: 15px;
             }
             .calendar-wrapper {
-                flex: 1 1 calc(33.333% - 10px); /* 3 columns layout */
+                flex: 1 1 calc(33.333% - 24px); /* 3 columns layout with padding/gap */
                 min-width: 300px;
                 margin-bottom: 0;
             }
