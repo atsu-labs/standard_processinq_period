@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>標準処理期間計算</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 20px;
+        }
+
+        /* Base layout for form */
+        .form-area {
+            max-width: 600px;
+            margin: 0 auto 20px auto; /* Center it and add margin at the bottom */
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        h1, h2 {
+            color: #333;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
+            margin-top: 0;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        input[type="date"],
+        input[type="number"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        #result {
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #e9ecef;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 1.1em;
+            text-align: center;
+            display: flex;
+            flex-direction: row;
+            justify-content: center;
+            gap: 2em;
+            align-items: center;
+        }
+        #result > div {
+            display: inline-block;
+        }
+        
+        .error {
+            color: #D8000C;
+            background-color: #FFD2D2;
+            padding: 10px;
+            border-radius: 4px;
+        }
+
+        /* Calendar Styles */
+        .calendar-wrapper {
+             margin-bottom: 20px;
+        }
+        .calendar {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .calendar-header {
+            text-align: center;
+            font-size: 1.2em;
+            font-weight: bold;
+            padding-bottom: 10px;
+        }
+        .calendar th, .calendar td {
+            text-align: center;
+            padding: 8px;
+            border: 1px solid #ddd;
+            vertical-align: top;
+            height: 4.5em;
+        }
+        .calendar th {
+            background-color: #f2f2f2;
+        }
+        .date-number {
+            font-size: 0.9em;
+        }
+        .day-count {
+            display: block;
+            margin-top: 4px;
+            font-size: 0.8em;
+            font-weight: bold;
+            color: #28a745;
+        }
+        .day-marker {
+            font-size: 0.75em;
+            font-weight: bold;
+            color: #333;
+        }
+        .holiday-name {
+            font-size: 0.7em;
+            line-height: 1.2;
+            color: #555;
+            margin-top: 2px;
+        }
+        .day-sat { color: #007bff; }
+        .day-sun { color: #dc3545; }
+        .day-holiday { background-color: #ffeeba; }
+        .day-ny-holiday { background-color: #cce5ff; }
+        .day-start { background-color: #a2d2a2; font-weight: bold; }
+        .day-end { background-color: #ffc107; font-weight: bold; }
+
+        /* Holiday Checkbox Styles */
+        .holiday-checkbox-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .holiday-checkbox-label {
+            display: flex;
+            align-items: center;
+            font-weight: normal;
+            padding: 5px;
+            border: 1px solid #eee;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+        .holiday-checkbox-label input {
+            margin-right: 8px;
+        }
+        
+        /* Collapsible Section */
+        .collapsible-header {
+            cursor: pointer;
+            position: relative;
+            user-select: none;
+        }
+        .collapsible-header::after {
+            content: '▲';
+            position: absolute;
+            right: 10px;
+            font-size: 0.8em;
+            transition: transform 0.2s;
+        }
+        .collapsible-header.collapsed::after {
+            transform: rotate(180deg);
+        }
+        .collapsible-content {
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+            max-height: 500px; /* Adjust if content is taller */
+        }
+        .collapsible-content.collapsed {
+            max-height: 0;
+            margin-top: 0;
+            margin-bottom: 0;
+        }
+
+
+        /* PC Layout Styles */
+        @media (min-width: 1024px) {
+            .main-container {
+                max-width: 1200px; /* Overall container for wide screens */
+                margin: 20px auto;
+            }
+            .form-area {
+                max-width: none; /* Allow form to be wider */
+            }
+            .form-row {
+                display: flex;
+                gap: 20px;
+            }
+            .form-row .form-group {
+                flex: 1;
+            }
+            #calendar-container {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 15px;
+            }
+            .calendar-wrapper {
+                flex: 1 1 calc(33.333% - 10px); /* 3 columns layout */
+                min-width: 300px;
+                margin-bottom: 0;
+            }
+        }
+
+        @media print {
+            /* 土曜・日曜・祝日・年末年始休日の色付け */
+            .day-sat { color: #007bff !important; background-color: #e3f0ff !important; }
+            .day-sun { color: #dc3545 !important; background-color: #ffe3e3 !important; }
+            .day-holiday { background-color: #ffeeba !important; color: #b8860b !important; }
+            .day-ny-holiday { background-color: #cce5ff !important; color: #004085 !important; }
+            .day-start { background-color: #a2d2a2 !important; font-weight: bold !important; }
+            .day-end { background-color: #ffc107 !important; font-weight: bold !important; }
+            body {
+                font-size: 10pt;
+                color: #000;
+                background-color: #fff;
+            }
+            .form-area, button {
+                display: none !important;
+            }
+            .main-container, .calendar-area {
+                width: 100%;
+                max-width: 100%;
+                margin: 0;
+                padding: 0;
+            }
+            #result {
+                text-align: center;
+                border-bottom: 2px solid #000;
+                margin-bottom: 10mm;
+                background-color: transparent;
+                border-radius: 0;
+            }
+            #calendar-container {
+                display: flex;
+                flex-wrap: wrap;
+                justify-content: space-between;
+            }
+            .calendar-wrapper {
+                width: 32%;
+                page-break-inside: avoid;
+            }
+            .calendar-wrapper:nth-child(3n) {
+                page-break-after: always;
+            }
+            .calendar th, .calendar td {
+                border: 1px solid #ccc;
+            }
+            .day-holiday, .day-ny-holiday, .day-start, .day-end {
+                background-color: #eee !important;
+            }
+            .day-sat { color: #000; }
+            .day-sun { color: #000; }
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <div class="form-area">
+            <h1>標準処理期間計算</h1>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="startDate">受付日</label>
+                    <input type="date" id="startDate" required>
+                </div>
+                <div class="form-group">
+                    <label for="processingDays">標準処理期間（営業日数）</label>
+                    <input type="number" id="processingDays" min="1" value="30" required>
+                </div>
+            </div>
+            <div class="collapsible-section">
+                <h2 id="ny-holiday-toggle" class="collapsible-header">年末年始の休日（初期値１２月２９日から１月３日）</h2>
+                <div id="ny-holiday-grid-container" class="collapsible-content">
+                    <div class="form-group holiday-checkbox-grid">
+                        <label class="holiday-checkbox-label"><input type="checkbox" name="ny-holiday" value="12-25"> 12月25日</label>
+                        <label class="holiday-checkbox-label"><input type="checkbox" name="ny-holiday" value="12-26"> 12月26日</label>
+                        <label class="holiday-checkbox-label"><input type="checkbox" name="ny-holiday" value="12-27"> 12月27日</label>
+                        <label class="holiday-checkbox-label"><input type="checkbox" name="ny-holiday" value="12-28"> 12月28日</label>
+                        <label class="holiday-checkbox-label"><input type="checkbox" name="ny-holiday" value="12-29" checked> 12月29日</label>
+                        <label class="holiday-checkbox-label"><input type="checkbox" name="ny-holiday" value="12-30" checked> 12月30日</label>
+                        <label class="holiday-checkbox-label"><input type="checkbox" name="ny-holiday" value="12-31" checked> 12月31日</label>
+                        <label class="holiday-checkbox-label"><input type="checkbox" name="ny-holiday" value="1-1" checked> 1月1日</label>
+                        <label class="holiday-checkbox-label"><input type="checkbox" name="ny-holiday" value="1-2" checked> 1月2日</label>
+                        <label class="holiday-checkbox-label"><input type="checkbox" name="ny-holiday" value="1-3" checked> 1月3日</label>
+                        <label class="holiday-checkbox-label"><input type="checkbox" name="ny-holiday" value="1-4"> 1月4日</label>
+                        <label class="holiday-checkbox-label"><input type="checkbox" name="ny-holiday" value="1-5"> 1月5日</label>
+                        <label class="holiday-checkbox-label"><input type="checkbox" name="ny-holiday" value="1-6"> 1月6日</label>
+                        <label class="holiday-checkbox-label"><input type="checkbox" name="ny-holiday" value="1-7"> 1月7日</label>
+                    </div>
+                </div>
+            </div>
+            <button id="calculateBtn">計算する</button>
+        </div>
+        <div class="calendar-area">
+            <div id="result"></div>
+            <div id="calendar-container"></div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const startDateInput = document.getElementById('startDate');
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const day = String(today.getDate()).padStart(2, '0');
+            startDateInput.value = `${year}-${month}-${day}`;
+
+            // Collapsible section logic
+            const holidayToggle = document.getElementById('ny-holiday-toggle');
+            const holidayGridContainer = document.getElementById('ny-holiday-grid-container');
+
+            // Collapse by default on PC view
+            if (window.innerWidth >= 1024) {
+                holidayToggle.classList.add('collapsed');
+                holidayGridContainer.classList.add('collapsed');
+            }
+
+            holidayToggle.addEventListener('click', () => {
+                holidayToggle.classList.toggle('collapsed');
+                holidayGridContainer.classList.toggle('collapsed');
+            });
+        });
+
+        document.getElementById('calculateBtn').addEventListener('click', async () => {
+            const startDateInput = document.getElementById('startDate');
+            const processingDaysInput = document.getElementById('processingDays');
+            const resultDiv = document.getElementById('result');
+            const calendarContainer = document.getElementById('calendar-container');
+
+            const selectedNYHolidays = new Set();
+            document.querySelectorAll('input[name="ny-holiday"]:checked').forEach(checkbox => {
+                selectedNYHolidays.add(checkbox.value);
+            });
+
+            resultDiv.innerHTML = '';
+            calendarContainer.innerHTML = '';
+
+            if (!startDateInput.value || !processingDaysInput.value) {
+                resultDiv.innerHTML = `<div class="error">受付日と標準処理期間を入力してください。</div>`;
+                return;
+            }
+
+            const startDate = new Date(startDateInput.value + 'T00:00:00');
+            const processingDays = parseInt(processingDaysInput.value, 10);
+            
+            resultDiv.textContent = '計算中...';
+
+            try {
+
+                const holidays = await fetchHolidays();
+                const {endDate, businessDays} = calculateEndDate(startDate, processingDays, holidays, selectedNYHolidays);
+                const formattedEndDate = `${endDate.getFullYear()}年${endDate.getMonth() + 1}月${endDate.getDate()}日`;
+                const formattedStartDate = `${startDate.getFullYear()}年${startDate.getMonth() + 1}月${startDate.getDate()}日`;
+                resultDiv.innerHTML = `
+                    <div>受付日: ${formattedStartDate}</div>
+                    <div>標準処理期間: ${processingDays} 日（土日祝休日除く）</div>
+                    <div>終了日: ${formattedEndDate}</div>
+                `;
+
+                renderCalendars(startDate, endDate, holidays, selectedNYHolidays, businessDays);
+
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">エラーが発生しました: ${error.message}</div>`;
+            }
+        });
+
+        async function fetchHolidays() {
+            const holidays = new Map(); // Changed from Set to Map
+            try {
+                const response = await fetch('syukujitsu.csv');
+                if (!response.ok) {
+                    throw new Error(`syukujitsu.csvの読み込みに失敗しました (HTTP ${response.status})`);
+                }
+                const buffer = await response.arrayBuffer();
+                // Use 'utf-8' to match the CSV file encoding
+                const text = new TextDecoder('utf-8').decode(buffer); 
+                
+                const lines = text.split('\r\n').slice(1);
+                lines.forEach(line => {
+                    // Handle cases where holiday names might contain commas
+                    const firstCommaIndex = line.indexOf(',');
+                    if (firstCommaIndex === -1) return;
+
+                    const dateStr = line.substring(0, firstCommaIndex);
+                    const holidayName = line.substring(firstCommaIndex + 1);
+
+                    if (dateStr && holidayName) {
+                        const date = new Date(dateStr);
+                        const year = date.getFullYear();
+                        const month = String(date.getMonth() + 1).padStart(2, '0');
+                        const day = String(date.getDate()).padStart(2, '0');
+                        if (!isNaN(year)) {
+                           holidays.set(`${year}-${month}-${day}`, holidayName.trim()); // Set date as key, name as value
+                        }
+                    }
+                });
+            } catch (e) {
+                console.error("祝日データの読み込みに失敗しました:", e);
+                const resultDiv = document.getElementById('result');
+                resultDiv.innerHTML = `<div class="error">祝日ファイル(syukujitsu.csv)の読み込みに失敗しました。ファイルが同じ階層に存在することを確認してください。</div>`;
+            }
+            return holidays;
+        }
+
+        function calculateEndDate(startDate, processingDays, holidays, selectedNYHolidays) {
+            let currentDate = new Date(startDate.getTime());
+            let daysCounted = 0;
+            const businessDays = new Map();
+
+            while (daysCounted < processingDays) {
+                currentDate.setDate(currentDate.getDate() + 1);
+                
+                const dayOfWeek = currentDate.getDay();
+                const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+
+                const dateString = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(currentDate.getDate()).padStart(2, '0')}`;
+                const isHoliday = holidays.has(dateString); // .has() works on Maps too
+
+                let isNewYearHoliday = false;
+                if (selectedNYHolidays.size > 0) {
+                    const month = currentDate.getMonth() + 1;
+                    const day = currentDate.getDate();
+                    const monthDay = `${month}-${day}`;
+                    if (selectedNYHolidays.has(monthDay)) {
+                        isNewYearHoliday = true;
+                    }
+                }
+
+                if (!isWeekend && !isHoliday && !isNewYearHoliday) {
+                    daysCounted++;
+                    businessDays.set(dateString, daysCounted);
+                }
+            }
+            return {endDate: currentDate, businessDays};
+        }
+
+        function renderCalendars(startDate, endDate, holidays, selectedNYHolidays, businessDays) {
+            const calendarContainer = document.getElementById('calendar-container');
+            calendarContainer.innerHTML = '';
+            let currentMonth = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
+
+            while (currentMonth <= endDate) {
+                const calendarHTML = createCalendarHTML(currentMonth.getFullYear(), currentMonth.getMonth(), startDate, endDate, holidays, selectedNYHolidays, businessDays);
+                calendarContainer.innerHTML += calendarHTML;
+                currentMonth.setMonth(currentMonth.getMonth() + 1);
+            }
+        }
+
+        function createCalendarHTML(year, month, startDate, endDate, holidays, selectedNYHolidays, businessDays) {
+            const firstDay = new Date(year, month, 1);
+            const lastDay = new Date(year, month + 1, 0);
+            const daysInMonth = lastDay.getDate();
+            const startDayOfWeek = firstDay.getDay();
+
+            let html = `<div class="calendar-wrapper">
+`;
+            html += `<div class="calendar-header">${year}年 ${month + 1}月</div>
+`;
+            html += '<table class="calendar">';
+            html += '<tr><th>日</th><th>月</th><th>火</th><th>水</th><th>木</th><th>金</th><th>土</th></tr>';
+            
+            let date = 1;
+            for (let i = 0; i < 6; i++) {
+                html += '<tr>';
+                for (let j = 0; j < 7; j++) {
+                    if (i === 0 && j < startDayOfWeek) {
+                        html += '<td></td>';
+                    } else if (date > daysInMonth) {
+                        html += '<td></td>';
+                    } else {
+                        const currentDate = new Date(year, month, date);
+                        const dateString = `${year}-${String(month + 1).padStart(2, '0')}-${String(date).padStart(2, '0')}`;
+                        
+                        let classes = [];
+                        if (j === 0) classes.push('day-sun');
+                        if (j === 6) classes.push('day-sat');
+                        
+                        let cellContent = `<div class="date-number">${date}</div>`;
+
+                        if (holidays.has(dateString)) {
+                            classes.push('day-holiday');
+                            cellContent += `<div class="holiday-name">${holidays.get(dateString)}</div>`;
+                        }
+
+                        if (selectedNYHolidays.size > 0) {
+                            const currentMonth = currentDate.getMonth() + 1;
+                            const currentDay = currentDate.getDate();
+                            const monthDay = `${currentMonth}-${currentDay}`;
+                            if (selectedNYHolidays.has(monthDay)) {
+                                classes.push('day-ny-holiday');
+                            }
+                        }
+
+                        if (currentDate.getTime() === startDate.getTime()) {
+                            classes.push('day-start');
+                            cellContent += `<div class="day-marker">受付日</div>`;
+                        }
+                        if (currentDate.getTime() === endDate.getTime()) {
+                            classes.push('day-end');
+                        }
+
+                        const dayCount = businessDays.get(dateString);
+                        if (dayCount) {
+                            cellContent += `<div class="day-count">${dayCount}日目</div>`;
+                        }
+
+                        html += `<td class="${classes.join(' ')}">${cellContent}</td>`;
+                        date++;
+                    }
+                }
+                html += '</tr>';
+                if (date > daysInMonth) break;
+            }
+            html += '</table></div>';
+            return html;
+        }
+    </script>
+</body>
+</html>
